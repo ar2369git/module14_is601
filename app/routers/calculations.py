@@ -13,8 +13,20 @@ from app.security import get_current_user
 router = APIRouter(prefix="/calculations", tags=["calculations"])
 
 @router.get("/", response_model=List[CalculationRead])
-def browse_calculations(db: Session = Depends(get_db), user=Depends(get_current_user)):
-    return db.query(Calculation).filter(Calculation.owner_id == user.id).all()
+def browse_calculations(
+    db: Session = Depends(get_db),
+    user=Depends(get_current_user),
+):
+    """
+    Retrieve all calculations belonging to the current user.
+    """
+    calculations = (
+        db.query(Calculation)
+          .filter(Calculation.owner_id == user.id)
+          .order_by(Calculation.created_at.desc())
+          .all()
+    )
+    return calculations
 
 @router.get("/{calc_id}", response_model=CalculationRead)
 def read_calculation(calc_id: int, db: Session = Depends(get_db), user=Depends(get_current_user)):
