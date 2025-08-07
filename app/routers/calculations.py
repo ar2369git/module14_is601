@@ -9,6 +9,15 @@ from app.models.calculation import Calculation
 from app.schemas.calculation import CalculationCreate, CalculationRead, CalculationUpdate
 from app.operations import perform_operation
 from app.security import get_current_user
+from starlette import status
+from typing import List
+
+from sqlalchemy.orm import Session
+
+from app.db import get_db
+from app.models.calculation import Calculation
+from app.schemas.calculation import CalculationRead
+from app.security import get_current_user
 
 router = APIRouter(prefix="/calculations", tags=["calculations"])
 
@@ -28,12 +37,30 @@ def browse_calculations(
     )
     return calculations
 
-@router.get("/{calc_id}", response_model=CalculationRead)
-def read_calculation(calc_id: int, db: Session = Depends(get_db), user=Depends(get_current_user)):
-    calc = db.get(Calculation, calc_id)
-    if not calc or calc.owner_id != user.id:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+@router.get("/{calculation_id}", response_model=CalculationRead)
+def read_calculation(
+    calculation_id: int,
+    db: Session = Depends(get_db),
+    user = Depends(get_current_user),
+):
+    """
+    Retrieve a single calculation by its ID, but only if it belongs to the current user.
+    """
+    calc = (
+        db.query(Calculation)
+          .filter(
+              Calculation.id == calculation_id,
+              Calculation.owner_id == user.id
+          )
+          .first()
+    )
+    if not calc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Calculation not found"
+        )
     return calc
+
 
 @router.post("/", response_model=CalculationRead, status_code=status.HTTP_201_CREATED)
 def add_calculation(payload: CalculationCreate, db: Session = Depends(get_db), user=Depends(get_current_user)):
