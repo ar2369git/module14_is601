@@ -19,10 +19,7 @@ class CalculationBase(BaseModel):
 
 
 class CalculationCreate(CalculationBase):
-    """
-    Payload for creating a new calculation.
-    Inherits the divide-by-zero check from CalculationBase.
-    """
+    """Payload for creating a new calculation."""
     pass
 
 
@@ -46,3 +43,10 @@ class CalculationUpdate(BaseModel):
         if model.type == CalculationType.Divide and model.b == 0:
             raise ValueError("Division by zero is not allowed")
         return model
+
+
+# ─── Compatibility aliases ────────────────────────────────────────────────────
+
+# main.py and routers still expect these names:
+CalculationIn = CalculationCreate
+CalculationOut = CalculationRead
