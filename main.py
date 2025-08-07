@@ -10,7 +10,7 @@ from app.schemas.calculation import CalculationIn, CalculationOut
 from app.db import Base, engine, SessionLocal
 from app.models.user import User
 from app.schemas.user import UserCreate, UserRead, Token, LoginData
-from app.security import hash_password, verify_password, create_access_token
+from app.security import hash_password, verify_password, create_access_token, get_current_user
 from app.routers import calculations
 import traceback
 
