@@ -1,8 +1,15 @@
 # app/schemas/calculation.py
 from datetime import datetime
 from pydantic import BaseModel, Field, model_validator
+from typing import Optional
+from enum import Enum
 from app.models.calculation import CalculationType
 
+
+class CalculationBase(BaseModel):
+    a: float
+    b: float
+    type: CalculationType
 
 class CalculationCreate(BaseModel):
     a: float = Field(..., description="First operand")
@@ -34,5 +41,10 @@ class CalculationIn(BaseModel):
     a: float
     b: float
 
-class CalculationOut(BaseModel):
+class CalculationOut(CalculationBase):
+    id: int
     result: float
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
