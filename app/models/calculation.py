@@ -8,7 +8,6 @@ from sqlalchemy.orm import relationship
 
 from app.db import Base
 
-
 class CalculationType(enum.Enum):
     Add = "Add"
     Subtract = "Subtract"
@@ -24,8 +23,9 @@ class Calculation(Base):
     b = Column(Float, nullable=False)
     type = Column(Enum(CalculationType), nullable=False)
     result = Column(Float, nullable=False)
-    owner_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
+
+    # This is your one and only FK to users
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
-    # back-populate from User.calculations
     user = relationship("User", back_populates="calculations")
