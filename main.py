@@ -11,9 +11,14 @@ from app.db import Base, engine, SessionLocal
 from app.models.user import User
 from app.schemas.user import UserCreate, UserRead, Token, LoginData
 from app.security import hash_password, verify_password, create_access_token
+from app.routers import calculations
+
+
 
 # 1) Create FastAPI app and mount your "static" folder (for JS/CSS, etc.)
 app = FastAPI()
+app.include_router(calculations.router)
+
 app.mount("/static", StaticFiles(directory="static"), name="static")
 Base.metadata.create_all(bind=engine)
 
