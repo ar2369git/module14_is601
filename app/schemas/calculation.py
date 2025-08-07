@@ -1,8 +1,8 @@
 # app/schemas/calculation.py
+
 from datetime import datetime
-from pydantic import BaseModel, Field, model_validator
 from typing import Optional
-from enum import Enum
+from pydantic import BaseModel, model_validator
 from app.models.calculation import CalculationType
 
 
@@ -11,40 +11,38 @@ class CalculationBase(BaseModel):
     b: float
     type: CalculationType
 
-class CalculationCreate(BaseModel):
-    a: float = Field(..., description="First operand")
-    b: float = Field(..., description="Second operand")
-    type: CalculationType
-
     @model_validator(mode="after")
-    def no_zero_divide(self):
-        if self.type == CalculationType.Divide and self.b == 0:
+    def check_divide_by_zero(cls, model):
+        if model.type == CalculationType.Divide and model.b == 0:
             raise ValueError("Division by zero is not allowed")
-        return self
+        return model
 
 
-# For PUT updates – same validation
-class CalculationUpdate(CalculationCreate):
+class CalculationCreate(CalculationBase):
+    """
+    Payload for creating a new calculation.
+    Inherits the divide-by-zero check from CalculationBase.
+    """
     pass
 
 
-class CalculationRead(BaseModel):
+class CalculationRead(CalculationBase):
     id: int
-    a: float
-    b: float
-    type: CalculationType
     result: float
     created_at: datetime
+    owner_id: int
 
     model_config = {"from_attributes": True}
-class CalculationIn(BaseModel):
-    a: float
-    b: float
 
-class CalculationOut(CalculationBase):
-    id: int
-    result: float
-    created_at: datetime
 
-    class Config:
-        from_attributes = True
+class CalculationUpdate(BaseModel):
+    a: Optional[float] = None
+    b: Optional[float] = None
+    type: Optional[CalculationType] = None
+
+    @model_validator(mode="after")
+    def check_divide_by_zero_on_update(cls, model):
+        # Only enforce when both type and b are provided
+        if model.type == CalculationType.Divide and model.b == 0:
+            raise ValueError("Division by zero is not allowed")
+        return model

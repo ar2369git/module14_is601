@@ -12,6 +12,8 @@ from app.models.user import User
 from app.schemas.user import UserCreate, UserRead, Token, LoginData
 from app.security import hash_password, verify_password, create_access_token
 from app.routers import calculations
+import traceback
+
 
 
 
@@ -92,9 +94,19 @@ def login(data: LoginData, db: Session = Depends(get_db)):
     return {"access_token": token, "token_type": "bearer"}
 
 # 7) Calculator endpoints
-@app.post("/add",      response_model=CalculationOut)
+@app.post("/add", response_model=CalculationOut)
 def add(calc: CalculationIn):
-    return {"result": calc.a + calc.b}
+    try:
+        result = calc.a + calc.b
+    except Exception as e:
+        # print full traceback to your console for debugging
+        traceback.print_exc()
+        # return a 400 so the front-end sees “Error 400” instead of crashing
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Add endpoint error: {e}"
+        )
+    return {"result": result}
 
 @app.post("/subtract", response_model=CalculationOut)
 def subtract(calc: CalculationIn):
