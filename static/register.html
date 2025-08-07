@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Register</title>
+</head>
+<body>
+  <h1>Register</h1>
+  <form id="register-form">
+    <input name="email"        placeholder="Email"             required /><br/>
+    <input name="username"     placeholder="Username"          required /><br/>
+    <input name="password"     type="password" placeholder="Password" required /><br/>
+    <input name="confirm_password"
+           type="password" placeholder="Confirm Password" required /><br/>
+    <button type="submit">Register</button>
+  </form>
+  <div id="message" style="margin-top:1em; color:red;"></div>
+
+  <script>
+    document.getElementById("register-form").addEventListener("submit", async e => {
+      e.preventDefault();
+      const form = e.target;
+      const payload = {
+        email: form.email.value,
+        username: form.username.value,
+        password: form.password.value,
+        confirm_password: form.confirm_password.value
+      };
+      const resp = await fetch("/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      const data = await resp.json();
+      document.getElementById("message").innerText = resp.ok
+        ? "Registration successful"
+        : data.detail || data.message || JSON.stringify(data);
+    });
+  </script>
+
+  <script src="/static/auth.js"></script>
+
+</body>
+</html>
