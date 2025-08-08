@@ -2,6 +2,7 @@ import pytest
 from playwright.sync_api import Page
 from datetime import datetime
 
+
 BASE = "http://localhost:8000"
 
 @ pytest.fixture(scope="module")
