@@ -1,42 +1,45 @@
-# tests/e2e/test_auth_flow.py
-
 import pytest
 from playwright.sync_api import Page
+from datetime import datetime
 
 BASE = "http://localhost:8000"
 
+@ pytest.fixture(scope="module")
+def credentials():
+    ts = datetime.now().strftime("%Y%m%d%H%M%S")
+    return {
+        "email": f"e2e{ts}@example.com",
+        "username": f"e2euser{ts}",
+        "password": "password123"
+    }
+
 @pytest.mark.e2e
-def test_register_flow(page: Page):
+def test_register_flow(page: Page, credentials):
     page.goto(f"{BASE}/register.html")
-    page.fill("input[name='email']", "e2e@example.com")
-    page.fill("input[name='username']", "e2euser")
-    page.fill("input[name='password']", "password123")
-    page.fill("input[name='confirm_password']", "password123")
-
-    # intercept the JS alert and accept it
-    page.once("dialog", lambda dialog: dialog.accept())
-    # submit via the single submit button on the auth-form
-    page.click("button[type='submit']")
-
-    # after the alert, the script does: window.location.href = "/"
-    page.wait_for_url(BASE + "/")
+    page.fill("input[name='email']", credentials["email"])
+    page.fill("input[name='username']", credentials["username"])
+    page.fill("input[name='password']", credentials["password"])
+    page.fill("input[name='confirm_password']", credentials["password"])
+    # submit the registration form
+    page.click("form#register-form button[type=submit]")
+    # should display a success message
+    page.wait_for_selector("#message:has-text('Registration successful')", timeout=5000)
 
 @pytest.mark.e2e
-def test_login_flow(page: Page):
+def test_login_flow(page: Page, credentials):
     page.goto(f"{BASE}/login.html")
-    page.fill("input[name='username_or_email']", "e2euser")
-    page.fill("input[name='password']", "password123")
-
+    page.fill("input[name='username_or_email']", credentials["username"])
+    page.fill("input[name='password']", credentials["password"])
     page.once("dialog", lambda dialog: dialog.accept())
-    page.click("button[type='submit']")
-    page.wait_for_url(BASE + "/")
+    page.click("form#login-form button[type=submit]")
+    # auth.js redirects to home on success
+    page.wait_for_url(f"{BASE}/", timeout=5000)
 
 @pytest.mark.e2e
-def test_login_invalid(page: Page):
+def test_login_invalid(page: Page, credentials):
     page.goto(f"{BASE}/login.html")
-    page.fill("input[name='username_or_email']", "e2euser")
+    page.fill("input[name='username_or_email']", credentials["username"])
     page.fill("input[name='password']", "wrongpass")
-
-    page.click("button[type='submit']")
-    # the error message is now rendered into the <div id="error">
-    page.wait_for_selector("#error:has-text('Invalid credentials')", timeout=5000)
+    page.click("form#login-form button[type=submit]")
+    # invalid login shows error in the message div
+    page.wait_for_selector("#message:has-text('Invalid credentials')", timeout=5000)
