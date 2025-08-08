@@ -1,15 +1,17 @@
+# tests/integration/test_calculation_model.py
+
 import os
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from app.db import Base
 from app.models.calculation import Calculation
-from app.factory.calculation_factory import compute
+from app.models.user import User  # new import
 
 TEST_DB = os.getenv("TEST_DATABASE_URL", "sqlite:///:memory:")
 engine = create_engine(
     TEST_DB,
-    connect_args={"check_same_thread": False} if TEST_DB.startswith("sqlite") else {}
+    connect_args={"check_same_thread": False} if TEST_DB.startswith("sqlite") else {},
 )
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
 
@@ -29,16 +31,20 @@ def db_session():
         db.close()
 
 def test_calculation_insert(db_session):
-    """
-    Since `user_id` is now non-nullable, we have to provide it.
-    SQLite (in-memory) won't enforce the FK by default, so this will succeed.
-    """
+    # create a dummy user so user_id FK is satisfied
+    user = User(username="testuser", email="test@example.com", password_hash="fakehash")
+    db_session.add(user)
+    db_session.commit()
+    db_session.refresh(user)
+
+    from app.factory.calculation_factory import compute
+
     calc = Calculation(
-        a=4,
-        b=5,
+        a=4.0,
+        b=5.0,
         type="Add",
         result=compute("Add", 4, 5),
-        user_id=1,            # <-- newly required
+        user_id=user.id,      # supply user_id explicitly
     )
     db_session.add(calc)
     db_session.commit()
@@ -49,4 +55,5 @@ def test_calculation_insert(db_session):
 
 def test_invalid_type(db_session):
     with pytest.raises(ValueError):
+        from app.factory.calculation_factory import compute
         compute("Foo", 1, 1)
