@@ -1,0 +1,32 @@
+<!-- calculations.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>My Calculations</title>
+  <script src="/static/auth.js"></script>
+  <script src="/static/calculations.js"></script>
+</head>
+<body>
+  <h1>Calculations</h1>
+  <div id="message"></div>
+  <section id="new-calc">
+    <h2>Add Calculation</h2>
+    <form id="add-form">
+      <input name="a" type="number" step="any" placeholder="a" required />
+      <input name="b" type="number" step="any" placeholder="b" required />
+      <select name="type" required>
+        <option>Add</option>
+        <option>Subtract</option>
+        <option>Multiply</option>
+        <option>Divide</option>
+      </select>
+      <button type="submit">Add</button>
+    </form>
+  </section>
+  <section id="list">
+    <h2>Existing</h2>
+    <ul id="calc-list"></ul>
+  </section>
+</body>
+</html>

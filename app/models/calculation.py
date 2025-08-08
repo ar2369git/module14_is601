@@ -1,10 +1,14 @@
 # app/models/calculation.py
+
 import enum
-from sqlalchemy import Column, Integer, Enum, Float, DateTime, func
+from datetime import datetime
+
+from sqlalchemy import Column, Integer, Float, Enum, ForeignKey, DateTime
+from sqlalchemy.orm import relationship
+
 from app.db import Base
 
-
-class CalculationType(str, enum.Enum):
+class CalculationType(enum.Enum):
     Add = "Add"
     Subtract = "Subtract"
     Multiply = "Multiply"
@@ -19,5 +23,9 @@ class Calculation(Base):
     b = Column(Float, nullable=False)
     type = Column(Enum(CalculationType), nullable=False)
     result = Column(Float, nullable=False)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    # Optional relationship to User could go here (user_id)
+
+    # This is your one and only FK to users
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    user = relationship("User", back_populates="calculations")

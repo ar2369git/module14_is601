@@ -1,5 +1,6 @@
 from typing import Union
 import logging
+from app.models.calculation import CalculationType
 
 # Initialize logger for this module
 logger = logging.getLogger(__name__)
@@ -28,3 +29,22 @@ def divide(a: Number, b: Number) -> float:
     result = a / b
     logger.info(f"divide: {a} / {b} = {result}")
     return result
+def perform_operation(calc_type: str, a: float, b: float) -> float:
+    """
+    Execute the calculation for the given type and operands.
+    Raises ValueError on divide-by-zero or unsupported types.
+    """
+    # Compare the incoming string to the Enum's .value
+    if calc_type == CalculationType.Add.value:
+        return a + b
+    elif calc_type == CalculationType.Subtract.value:
+        return a - b
+    elif calc_type == CalculationType.Multiply.value:
+        return a * b
+    elif calc_type == CalculationType.Divide.value:
+        if b == 0:
+            raise ValueError("Division by zero")
+        return a / b
+    else:
+        # This error message is now more accurate, showing the string received
+        raise ValueError(f"Unsupported calculation type: '{calc_type}'")

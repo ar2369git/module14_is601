@@ -8,10 +8,14 @@ def test_homepage_and_operations(page: Page):
     page.goto(BASE)
     assert page.inner_text("h1") == "Hello World"
 
-    # do an addition
-    page.fill("input[name='a']", "2")
-    page.fill("input[name='b']", "3")
-    page.select_option("select#operation", "add")
+    # do an addition; note that the input names/ids now match the HTML
+    page.fill("#a", "2")
+    page.fill("#b", "3")
+
+    # operation select now uses the enum value
+    page.select_option("#operation", "Add")
     page.click("button#calculate")
-    page.wait_for_selector("text=5")
+
+    # wait for the result element to populate
+    page.wait_for_selector("#result", timeout=5000)
     assert page.inner_text("#result") == "5"
