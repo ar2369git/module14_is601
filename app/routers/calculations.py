@@ -150,4 +150,4 @@ def delete_calculation(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Calculation not found")
     db.delete(calc)
     db.commit()
-    # returns 204 No Content
+    # returns 204 No Contents
