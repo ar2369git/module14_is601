@@ -1,5 +1,3 @@
-# app/routers/calculations.py
-
 from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -8,21 +6,18 @@ from sqlalchemy.orm import Session
 from app.db import get_db
 from app.models.calculation import Calculation as CalculationModel
 from app.models.user import User as UserModel
-from app.schemas.calculation import CalculationIn, CalculationOut
-from app.operations import perform_operation
-from app.security import get_current_user
-from app.models.calculation import Calculation
 from app.schemas.calculation import (
     CalculationCreate,
-    CalculationRead,
+    CalculationOut,
     CalculationUpdate,
 )
+from app.operations import perform_operation
+from app.security import get_current_user
 
 router = APIRouter(
     prefix="/calculations",
     tags=["calculations"],
 )
-
 
 @router.get(
     "/",
@@ -39,7 +34,6 @@ def list_calculations(
           .all()
     )
 
-
 @router.post(
     "/",
     response_model=CalculationOut,
@@ -47,13 +41,17 @@ def list_calculations(
     summary="Create a new calculation",
 )
 def create_calculation(
-    data: CalculationIn,
+    data: CalculationCreate,
     db: Session = Depends(get_db),
     current_user: UserModel = Depends(get_current_user),
 ):
     # perform the math
-    result = perform_operation(data.type, data.a, data.b)
-    # build and persist
+    try:
+        result = perform_operation(data.type, data.a, data.b)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+    # build & persist
     calc = CalculationModel(
         a=data.a,
         b=data.b,
@@ -65,7 +63,6 @@ def create_calculation(
     db.commit()
     db.refresh(calc)
     return calc
-
 
 @router.get(
     "/{calc_id}",
@@ -81,26 +78,27 @@ def read_calculation(
         db.query(CalculationModel)
           .filter(
               CalculationModel.id == calc_id,
-              CalculationModel.user_id == current_user.id
+              CalculationModel.user_id == current_user.id,
           )
           .first()
     )
     if not calc:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Calculation not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Calculation not found")
     return calc
-
 
 @router.put(
     "/{calc_id}",
     response_model=CalculationOut,
     summary="Update an existing calculation",
 )
+@router.patch(
+    "/{calc_id}",
+    response_model=CalculationOut,
+    summary="Partially update an existing calculation",
+)
 def update_calculation(
     calc_id: int,
-    data: CalculationIn,
+    data: CalculationUpdate,
     db: Session = Depends(get_db),
     current_user: UserModel = Depends(get_current_user),
 ):
@@ -108,23 +106,27 @@ def update_calculation(
         db.query(CalculationModel)
           .filter(
               CalculationModel.id == calc_id,
-              CalculationModel.user_id == current_user.id
+              CalculationModel.user_id == current_user.id,
           )
           .first()
     )
     if not calc:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Calculation not found"
-        )
-    calc.a = data.a
-    calc.b = data.b
-    calc.type = data.type
-    calc.result = perform_operation(data.type, data.a, data.b)
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Calculation not found")
+
+    # apply only provided fields
+    updates = data.dict(exclude_unset=True)
+    for field, val in updates.items():
+        setattr(calc, field, val)
+
+    # recompute result if needed
+    try:
+        calc.result = perform_operation(calc.type, calc.a, calc.b)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
     db.commit()
     db.refresh(calc)
     return calc
-
 
 @router.delete(
     "/{calc_id}",
@@ -140,41 +142,12 @@ def delete_calculation(
         db.query(CalculationModel)
           .filter(
               CalculationModel.id == calc_id,
-              CalculationModel.user_id == current_user.id
+              CalculationModel.user_id == current_user.id,
           )
           .first()
     )
     if not calc:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Calculation not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Calculation not found")
     db.delete(calc)
     db.commit()
-    # 204 No Content returns an empty body
-
-@router.put("/{calc_id}", response_model=CalculationRead)
-@router.patch("/{calc_id}", response_model=CalculationRead)
-def edit_calculation(
-    calc_id: int,
-    payload: CalculationUpdate,
-    db: Session = Depends(get_db),
-    user=Depends(get_current_user),
-):
-    calc = db.get(Calculation, calc_id)
-    if not calc or calc.owner_id != user.id:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
-
-    # apply updates
-    for field, val in payload.dict(exclude_unset=True).items():
-        setattr(calc, field, val)
-
-    # re-compute result if a/b/type changed
-    try:
-        calc.result = perform_operation(calc.type, calc.a, calc.b)
-    except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
-
-    db.commit()
-    db.refresh(calc)
-    return calc
+    # returns 204 No Content
